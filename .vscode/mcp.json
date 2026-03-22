@@ -6,8 +6,8 @@
     // "sql-server" is the name Copilot sees — must match the name in mcp_sql_server.py
     "sql-server": {
       // How to launch the server:
-      // "uv run" activates our .venv automatically and runs the script
-      "command": "uv",
+      // Full path to uv.exe since MCP spawns a subprocess outside of shell PATH
+      "command": "C:\\Users\\marci\\.local\\bin\\uv.exe",
       "args": ["run", "python", "mcp_sql_server.py"],
 
       // Working directory — ${workspaceFolder} = this project's root

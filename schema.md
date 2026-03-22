@@ -1,355 +1,271 @@
-# Database Schema
+# Database Schema — Chinook
+
+## Overview
+
+The **Chinook** database models a digital music store. It contains 11 tables covering artists, albums, tracks, customers, employees, invoices, playlists, genres, and media types.
+
+**Engine:** SQLite (file: `data/chinook.db`)
 
 ## Tables
 
-| # | Table Name | URL | Status |
-|---|------------|-----|--------|
-| 1 | actor | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/actor | ✅ |
-| 2 | address | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/address | ✅ |
-| 3 | category | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/category | ✅ |
-| 4 | city | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/city | ✅ |
-| 5 | country | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/country | ✅ |
-| 6 | customer | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/customer | ✅ |
-| 7 | film | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/film | ✅ |
-| 8 | film_actor | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/film-actor | ✅ |
-| 9 | film_category | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/film-category | ✅ |
-| 10 | film_text | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/film-text | ✅ |
-| 11 | inventory | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/inventory | ✅ |
-| 12 | language | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/language | ✅ |
-| 13 | payment | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/payment | ✅ |
-| 14 | rental | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/rental | ✅ |
-| 15 | staff | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/staff | ✅ |
-| 16 | store | https://dataedo.com/samples/html2/Sakila/#/doc/t3887/sakila/tables/store | ✅ |
+| # | Table Name | Rows | Module |
+|---|------------|------|--------|
+| 1 | Album | 347 | Music Catalog |
+| 2 | Artist | 275 | Music Catalog |
+| 3 | Customer | 59 | Customer Data |
+| 4 | Employee | 8 | Customer Data |
+| 5 | Genre | 25 | Music Catalog |
+| 6 | Invoice | 412 | Sales |
+| 7 | InvoiceLine | 2,240 | Sales |
+| 8 | MediaType | 5 | Music Catalog |
+| 9 | Playlist | 18 | Music Catalog |
+| 10 | PlaylistTrack | 8,715 | Music Catalog |
+| 11 | Track | 3,503 | Music Catalog |
 
 ---
 
 ## Table Details
 
-### 1. actor
-**Module:** Film  
-**Description:** The actor table lists information for all actors. The actor table is referred to by a foreign key in the film_actor table.
+### 1. Album
+**Module:** Music Catalog
+**Description:** Each row represents one album, linked to an artist.
 
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | actor_id | SMALLINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each actor in the table. |
-| 2 | | first_name | VARCHAR(45) | NO | | — | The actor's first name. |
-| 3 | | last_name | VARCHAR(45) | NO | | — | The actor's last name. |
-| 4 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | AlbumId | INTEGER | NO | Unique album identifier. |
+| 2 | | Title | NVARCHAR(160) | NO | Album title. |
+| 3 | FK | ArtistId | INTEGER | NO | The artist who recorded this album. |
 
-**Primary Key:** actor_id  
-**Indexes:** idx_actor_last_name (last_name)  
-**Referenced by:** film_actor.actor_id → actor.actor_id
-
----
-
-### 2. address
-**Module:** Customer Data  
-**Description:** The address table contains address information for customers, staff, and stores. The address table primary key appears as a foreign key in the customer, staff, and store tables.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | address_id | SMALLINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each address in the table. |
-| 2 | | address | VARCHAR(50) | NO | | — | The first line of an address. |
-| 3 | | address2 | VARCHAR(50) | YES | | — | An optional second line of an address. |
-| 4 | | district | VARCHAR(20) | NO | | — | The region of an address (e.g. county, province). |
-| 5 | FK | city_id | SMALLINT UNSIGNED | NO | | city.city_id | A foreign key pointing to the city table. |
-| 6 | | postal_code | VARCHAR(10) | YES | | — | The postal code or ZIP code of the address. |
-| 7 | | phone | VARCHAR(20) | NO | | — | The telephone number for the address. |
-| 8 | | location | GEOMETRY | NO | | — | Spatial data (point) for the address location. |
-| 9 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** address_id  
-**Foreign Keys:** fk_address_city — address.city_id → city.city_id  
-**Indexes:** idx_fk_city_id (city_id)  
-**Referenced by:** customer.address_id, staff.address_id, store.address_id
+**Primary Key:** AlbumId
+**Foreign Keys:** Album.ArtistId → Artist.ArtistId
+**Indexes:** IFK_AlbumArtistId (ArtistId)
+**Referenced by:** Track.AlbumId → Album.AlbumId
 
 ---
 
-### 3. category
-**Module:** Film  
-**Description:** The category table lists the categories that can be assigned to a film. The category table is joined to the film table via the film_category table.
+### 2. Artist
+**Module:** Music Catalog
+**Description:** Each row represents one music artist or band.
 
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | category_id | TINYINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each category in the table. |
-| 2 | | name | VARCHAR(25) | NO | | — | The name of the category. |
-| 3 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | ArtistId | INTEGER | NO | Unique artist identifier. |
+| 2 | | Name | NVARCHAR(120) | YES | Artist or band name. |
 
-**Primary Key:** category_id  
-**Referenced by:** film_category.category_id → category.category_id
-
----
-
-### 4. city
-**Module:** Customer Data  
-**Description:** The city table contains a list of cities. The city table is referred to by a foreign key in the address table and refers to the country table using a foreign key.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | city_id | SMALLINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each city in the table. |
-| 2 | | city | VARCHAR(50) | NO | | — | The name of the city. |
-| 3 | FK | country_id | SMALLINT UNSIGNED | NO | | country.country_id | A foreign key identifying the country that the city belongs to. |
-| 4 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** city_id  
-**Foreign Keys:** fk_city_country — city.country_id → country.country_id  
-**Indexes:** idx_fk_country_id (country_id)  
-**Referenced by:** address.city_id → city.city_id
+**Primary Key:** ArtistId
+**Referenced by:** Album.ArtistId → Artist.ArtistId
 
 ---
 
-### 5. country
-**Module:** Customer Data  
-**Description:** The country table contains a list of countries. The country table is referred to by a foreign key in the city table.
+### 3. Customer
+**Module:** Customer Data
+**Description:** Each row represents a customer of the music store. Customers are assigned a support representative (an employee).
 
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | country_id | SMALLINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each country in the table. |
-| 2 | | country | VARCHAR(50) | NO | | — | The name of the country. |
-| 3 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | CustomerId | INTEGER | NO | Unique customer identifier. |
+| 2 | | FirstName | NVARCHAR(40) | NO | Customer's first name. |
+| 3 | | LastName | NVARCHAR(20) | NO | Customer's last name. |
+| 4 | | Company | NVARCHAR(80) | YES | Customer's company name. |
+| 5 | | Address | NVARCHAR(70) | YES | Street address. |
+| 6 | | City | NVARCHAR(40) | YES | City. |
+| 7 | | State | NVARCHAR(40) | YES | State or province. |
+| 8 | | Country | NVARCHAR(40) | YES | Country. |
+| 9 | | PostalCode | NVARCHAR(10) | YES | Postal / ZIP code. |
+| 10 | | Phone | NVARCHAR(24) | YES | Phone number. |
+| 11 | | Fax | NVARCHAR(24) | YES | Fax number. |
+| 12 | | Email | NVARCHAR(60) | NO | Email address. |
+| 13 | FK | SupportRepId | INTEGER | YES | Assigned support employee. |
 
-**Primary Key:** country_id  
-**Referenced by:** city.country_id → country.country_id
+**Primary Key:** CustomerId
+**Foreign Keys:** Customer.SupportRepId → Employee.EmployeeId
+**Indexes:** IFK_CustomerSupportRepId (SupportRepId)
+**Referenced by:** Invoice.CustomerId → Customer.CustomerId
 
 ---
 
-### 6. customer
-**Module:** Customer Data  
-**Description:** The customer table contains a list of all customers. The customer table is referred to in the payment and rental tables and refers to the address and store tables using foreign keys.
+### 4. Employee
+**Module:** Customer Data
+**Description:** Staff members of the music store. Self-referencing FK for manager hierarchy (ReportsTo → EmployeeId).
 
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | customer_id | SMALLINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each customer in the table. |
-| 2 | FK | store_id | TINYINT UNSIGNED | NO | | store.store_id | A foreign key identifying the customer's "home store." |
-| 3 | | first_name | VARCHAR(45) | NO | | — | The customer's first name. |
-| 4 | | last_name | VARCHAR(45) | NO | | — | The customer's last name. |
-| 5 | | email | VARCHAR(50) | YES | | — | The customer's email address. |
-| 6 | FK | address_id | SMALLINT UNSIGNED | NO | | address.address_id | A foreign key identifying the customer's address in the address table. |
-| 7 | | active | TINYINT(1) | NO | Default: 1 | — | Indicates whether the customer is an active customer (1 = active, 0 = inactive). |
-| 8 | | create_date | DATETIME | NO | | — | The date the customer was added to the system. |
-| 9 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | EmployeeId | INTEGER | NO | Unique employee identifier. |
+| 2 | | LastName | NVARCHAR(20) | NO | Last name. |
+| 3 | | FirstName | NVARCHAR(20) | NO | First name. |
+| 4 | | Title | NVARCHAR(30) | YES | Job title. |
+| 5 | FK | ReportsTo | INTEGER | YES | Manager's EmployeeId (self-referencing). |
+| 6 | | BirthDate | DATETIME | YES | Date of birth. |
+| 7 | | HireDate | DATETIME | YES | Date hired. |
+| 8 | | Address | NVARCHAR(70) | YES | Street address. |
+| 9 | | City | NVARCHAR(40) | YES | City. |
+| 10 | | State | NVARCHAR(40) | YES | State or province. |
+| 11 | | Country | NVARCHAR(40) | YES | Country. |
+| 12 | | PostalCode | NVARCHAR(10) | YES | Postal / ZIP code. |
+| 13 | | Phone | NVARCHAR(24) | YES | Phone number. |
+| 14 | | Fax | NVARCHAR(24) | YES | Fax number. |
+| 15 | | Email | NVARCHAR(60) | YES | Email address. |
 
-**Primary Key:** customer_id  
+**Primary Key:** EmployeeId
+**Foreign Keys:** Employee.ReportsTo → Employee.EmployeeId (self-referencing)
+**Indexes:** IFK_EmployeeReportsTo (ReportsTo)
+**Referenced by:** Customer.SupportRepId → Employee.EmployeeId
+
+---
+
+### 5. Genre
+**Module:** Music Catalog
+**Description:** Lookup table of music genres (Rock, Jazz, etc.).
+
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | GenreId | INTEGER | NO | Unique genre identifier. |
+| 2 | | Name | NVARCHAR(120) | YES | Genre name. |
+
+**Primary Key:** GenreId
+**Referenced by:** Track.GenreId → Genre.GenreId
+
+---
+
+### 6. Invoice
+**Module:** Sales
+**Description:** Each row represents a sale to a customer. Contains billing address and total amount. Individual purchased items are in InvoiceLine.
+
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | InvoiceId | INTEGER | NO | Unique invoice identifier. |
+| 2 | FK | CustomerId | INTEGER | NO | Customer who made the purchase. |
+| 3 | | InvoiceDate | DATETIME | NO | Date/time of the invoice. |
+| 4 | | BillingAddress | NVARCHAR(70) | YES | Billing street address. |
+| 5 | | BillingCity | NVARCHAR(40) | YES | Billing city. |
+| 6 | | BillingState | NVARCHAR(40) | YES | Billing state/province. |
+| 7 | | BillingCountry | NVARCHAR(40) | YES | Billing country. |
+| 8 | | BillingPostalCode | NVARCHAR(10) | YES | Billing postal/ZIP code. |
+| 9 | | Total | NUMERIC(10,2) | NO | Invoice total amount. |
+
+**Primary Key:** InvoiceId
+**Foreign Keys:** Invoice.CustomerId → Customer.CustomerId
+**Indexes:** IFK_InvoiceCustomerId (CustomerId)
+**Referenced by:** InvoiceLine.InvoiceId → Invoice.InvoiceId
+
+---
+
+### 7. InvoiceLine
+**Module:** Sales
+**Description:** Each row is one line item on an invoice — a single track purchase with unit price and quantity.
+
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | InvoiceLineId | INTEGER | NO | Unique line item identifier. |
+| 2 | FK | InvoiceId | INTEGER | NO | Parent invoice. |
+| 3 | FK | TrackId | INTEGER | NO | Track that was purchased. |
+| 4 | | UnitPrice | NUMERIC(10,2) | NO | Price per unit at time of purchase. |
+| 5 | | Quantity | INTEGER | NO | Number of units purchased. |
+
+**Primary Key:** InvoiceLineId
 **Foreign Keys:**
-- fk_customer_store — customer.store_id → store.store_id
-- fk_customer_address — customer.address_id → address.address_id
+- InvoiceLine.InvoiceId → Invoice.InvoiceId
+- InvoiceLine.TrackId → Track.TrackId
 
-**Indexes:** idx_fk_store_id (store_id), idx_fk_address_id (address_id), idx_last_name (last_name)  
-**Referenced by:** payment.customer_id, rental.customer_id
+**Indexes:** IFK_InvoiceLineInvoiceId (InvoiceId), IFK_InvoiceLineTrackId (TrackId)
 
 ---
 
-### 7. film
-**Module:** Film  
-**Description:** The film table is a list of all films potentially in stock in the stores. Each row represents a single film. The film table refers to the language table and is referred to by the film_category, film_actor, and inventory tables.
+### 8. MediaType
+**Module:** Music Catalog
+**Description:** Lookup table of media formats (MPEG, AAC, Protected AAC, etc.).
 
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | film_id | SMALLINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each film in the table. |
-| 2 | | title | VARCHAR(128) | NO | | — | The title of the film. |
-| 3 | | description | TEXT | YES | | — | A short description or plot summary of the film. |
-| 4 | | release_year | YEAR | YES | | — | The year in which the movie was released. |
-| 5 | FK | language_id | TINYINT UNSIGNED | NO | | language.language_id | A foreign key pointing at the language table; identifies the language of the film. |
-| 6 | FK | original_language_id | TINYINT UNSIGNED | YES | | language.language_id | A foreign key pointing at the language table; identifies the original language of the film. Used when a film has been dubbed into a new language. |
-| 7 | | rental_duration | TINYINT UNSIGNED | NO | Default: 3 | — | The length of the rental period, in days. |
-| 8 | | rental_rate | DECIMAL(4,2) | NO | Default: 4.99 | — | The cost to rent the film for the period specified in rental_duration. |
-| 9 | | length | SMALLINT UNSIGNED | YES | | — | The duration of the film, in minutes. |
-| 10 | | replacement_cost | DECIMAL(5,2) | NO | Default: 19.99 | — | The amount charged to the customer if the film is not returned or is returned in a damaged state. |
-| 11 | | rating | ENUM('G','PG','PG-13','R','NC-17') | YES | Default: 'G' | — | The rating assigned to the film (G, PG, PG-13, R, NC-17). |
-| 12 | | special_features | SET('Trailers','Commentaries','Deleted Scenes','Behind the Scenes') | YES | | — | Lists which common special features are included on the DVD. |
-| 13 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | MediaTypeId | INTEGER | NO | Unique media type identifier. |
+| 2 | | Name | NVARCHAR(120) | YES | Media type name. |
 
-**Primary Key:** film_id  
+**Primary Key:** MediaTypeId
+**Referenced by:** Track.MediaTypeId → MediaType.MediaTypeId
+
+---
+
+### 9. Playlist
+**Module:** Music Catalog
+**Description:** Named playlists. Linked to tracks via the PlaylistTrack junction table (M:N).
+
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | PlaylistId | INTEGER | NO | Unique playlist identifier. |
+| 2 | | Name | NVARCHAR(120) | YES | Playlist name. |
+
+**Primary Key:** PlaylistId
+**Referenced by:** PlaylistTrack.PlaylistId → Playlist.PlaylistId
+
+---
+
+### 10. PlaylistTrack
+**Module:** Music Catalog
+**Description:** Junction table supporting M:N relationship between Playlist and Track. One row per track-in-playlist.
+
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK, FK | PlaylistId | INTEGER | NO | The playlist. |
+| 2 | PK, FK | TrackId | INTEGER | NO | The track in the playlist. |
+
+**Primary Key:** (PlaylistId, TrackId) — composite
 **Foreign Keys:**
-- fk_film_language — film.language_id → language.language_id
-- fk_film_language_original — film.original_language_id → language.language_id
+- PlaylistTrack.PlaylistId → Playlist.PlaylistId
+- PlaylistTrack.TrackId → Track.TrackId
 
-**Indexes:** idx_title (title), idx_fk_language_id (language_id), idx_fk_original_language_id (original_language_id)  
-**Referenced by:** film_actor.film_id, film_category.film_id, inventory.film_id
+**Indexes:** IFK_PlaylistTrackPlaylistId (PlaylistId), IFK_PlaylistTrackTrackId (TrackId)
 
 ---
 
-### 8. film_actor
-**Module:** Film  
-**Description:** The film_actor table is used to support a many-to-many relationship between films and actors. For each actor in a given film, there will be one row in the film_actor table listing the actor and film.
+### 11. Track
+**Module:** Music Catalog
+**Description:** Each row represents one music track. Links to Album, Genre, and MediaType. Core table of the database.
 
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK, FK | actor_id | SMALLINT UNSIGNED | NO | | actor.actor_id | A foreign key identifying the actor. |
-| 2 | PK, FK | film_id | SMALLINT UNSIGNED | NO | | film.film_id | A foreign key identifying the film. |
-| 3 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
+| # | Key | Column | Data Type | Nullable | Description |
+|---|-----|--------|-----------|----------|-------------|
+| 1 | PK | TrackId | INTEGER | NO | Unique track identifier. |
+| 2 | | Name | NVARCHAR(200) | NO | Track title. |
+| 3 | FK | AlbumId | INTEGER | YES | Album this track belongs to. |
+| 4 | FK | MediaTypeId | INTEGER | NO | Media format of the track. |
+| 5 | FK | GenreId | INTEGER | YES | Genre of the track. |
+| 6 | | Composer | NVARCHAR(220) | YES | Track composer(s). |
+| 7 | | Milliseconds | INTEGER | NO | Track duration in milliseconds. |
+| 8 | | Bytes | INTEGER | YES | File size in bytes. |
+| 9 | | UnitPrice | NUMERIC(10,2) | NO | Price per track. |
 
-**Primary Key:** (actor_id, film_id) — composite  
+**Primary Key:** TrackId
 **Foreign Keys:**
-- fk_film_actor_actor — film_actor.actor_id → actor.actor_id
-- fk_film_actor_film — film_actor.film_id → film.film_id
+- Track.AlbumId → Album.AlbumId
+- Track.GenreId → Genre.GenreId
+- Track.MediaTypeId → MediaType.MediaTypeId
 
-**Indexes:** idx_fk_film_id (film_id)
-
----
-
-### 9. film_category
-**Module:** Film  
-**Description:** The film_category table is used to support a many-to-many relationship between films and categories. For each category applied to a film, there will be one row in the film_category table listing the category and film.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK, FK | film_id | SMALLINT UNSIGNED | NO | | film.film_id | A foreign key identifying the film. |
-| 2 | PK, FK | category_id | TINYINT UNSIGNED | NO | | category.category_id | A foreign key identifying the category. |
-| 3 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** (film_id, category_id) — composite  
-**Foreign Keys:**
-- fk_film_category_film — film_category.film_id → film.film_id
-- fk_film_category_category — film_category.category_id → category.category_id
+**Indexes:** IFK_TrackAlbumId (AlbumId), IFK_TrackGenreId (GenreId), IFK_TrackMediaTypeId (MediaTypeId)
+**Referenced by:** InvoiceLine.TrackId → Track.TrackId, PlaylistTrack.TrackId → Track.TrackId
 
 ---
 
-### 10. film_text
-**Module:** Film  
-**Description:** The film_text table contains the film_id, title, and description columns of the film table, with the contents of the table kept in synchrony with the film table by means of triggers on film table INSERT, UPDATE, and DELETE operations. Used for full-text search.
+## Common Multi-Hop Join Paths
 
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | film_id | SMALLINT | NO | | — | A unique identifier matching film.film_id. |
-| 2 | | title | VARCHAR(255) | NO | | — | The title of the film (copy of film.title). |
-| 3 | | description | TEXT | YES | | — | The description of the film (copy of film.description). |
+| From → To | Path |
+|-----------|------|
+| Customer → Track | `Customer → Invoice → InvoiceLine → Track` |
+| Customer → Artist | `Customer → Invoice → InvoiceLine → Track → Album → Artist` |
+| Customer → Genre | `Customer → Invoice → InvoiceLine → Track → Genre` |
+| Invoice → Track | `Invoice → InvoiceLine → Track` |
+| Invoice → Artist | `Invoice → InvoiceLine → Track → Album → Artist` |
+| Track → Artist | `Track → Album → Artist` |
+| Track → Playlist | `Track → PlaylistTrack → Playlist` |
+| Employee → Customer | `Employee → Customer` (via SupportRepId) |
+| Employee → Employee | `Employee → Employee` (via ReportsTo, self-join) |
 
-**Primary Key:** film_id  
-**Indexes:** idx_title_description (title, description) — FULLTEXT
+## Schema Architecture (11 tables, 3 modules)
 
----
+- **Music Catalog:** `Artist`, `Album`, `Track`, `Genre`, `MediaType`, `Playlist`, `PlaylistTrack` (M:N)
+- **Customer Data:** `Customer`, `Employee` (self-referencing hierarchy)
+- **Sales:** `Invoice`, `InvoiceLine`
 
-### 11. inventory
-**Module:** Business  
-**Description:** The inventory table contains one row for each copy of a given film in a given store. The inventory table refers to the film and store tables using foreign keys and is referred to by the rental table.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | inventory_id | MEDIUMINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each item in inventory. |
-| 2 | FK | film_id | SMALLINT UNSIGNED | NO | | film.film_id | A foreign key pointing to the film this item represents. |
-| 3 | FK | store_id | TINYINT UNSIGNED | NO | | store.store_id | A foreign key pointing to the store stocking this item. |
-| 4 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** inventory_id  
-**Foreign Keys:**
-- fk_inventory_film — inventory.film_id → film.film_id
-- fk_inventory_store — inventory.store_id → store.store_id
-
-**Indexes:** idx_fk_film_id (film_id), idx_store_id_film_id (store_id, film_id)  
-**Referenced by:** rental.inventory_id → inventory.inventory_id
-
----
-
-### 12. language
-**Module:** Film  
-**Description:** The language table is a lookup table listing the possible languages that films can have for their language and original language values. The language table is referred to by the film table.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | language_id | TINYINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each language. |
-| 2 | | name | CHAR(20) | NO | | — | The English name of the language. |
-| 3 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** language_id  
-**Referenced by:** film.language_id, film.original_language_id
-
----
-
-### 13. payment
-**Module:** Business  
-**Description:** The payment table records each payment made by a customer. The payment table refers to the customer, rental, and staff tables.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | payment_id | SMALLINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key used to uniquely identify each payment. |
-| 2 | FK | customer_id | SMALLINT UNSIGNED | NO | | customer.customer_id | The customer whose balance the payment is being applied to. |
-| 3 | FK | staff_id | TINYINT UNSIGNED | NO | | staff.staff_id | The staff member who processed the payment. |
-| 4 | FK | rental_id | INT | YES | | rental.rental_id | The rental that the payment is being applied to. NULL if the payment is for an outstanding balance. |
-| 5 | | amount | DECIMAL(5,2) | NO | | — | The amount of the payment. |
-| 6 | | payment_date | DATETIME | NO | | — | The date the payment was processed. |
-| 7 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** payment_id  
-**Foreign Keys:**
-- fk_payment_customer — payment.customer_id → customer.customer_id
-- fk_payment_staff — payment.staff_id → staff.staff_id
-- fk_payment_rental — payment.rental_id → rental.rental_id
-
-**Indexes:** idx_fk_customer_id (customer_id), idx_fk_staff_id (staff_id)
-
----
-
-### 14. rental
-**Module:** Business  
-**Description:** The rental table contains one row for each rental of each inventory item with information about who rented what item, when it was rented, and when it was returned. The rental table refers to the inventory, customer, and staff tables and is referred to by the payment table.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | rental_id | INT | NO | Auto Increment | — | A surrogate primary key that uniquely identifies the rental. |
-| 2 | | rental_date | DATETIME | NO | | — | The date and time that the item was rented. |
-| 3 | FK | inventory_id | MEDIUMINT UNSIGNED | NO | | inventory.inventory_id | The item being rented. |
-| 4 | FK | customer_id | SMALLINT UNSIGNED | NO | | customer.customer_id | The customer renting the item. |
-| 5 | | return_date | DATETIME | YES | | — | The date and time the item was returned. |
-| 6 | FK | staff_id | TINYINT UNSIGNED | NO | | staff.staff_id | The staff member who processed the rental. |
-| 7 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** rental_id  
-**Foreign Keys:**
-- fk_rental_inventory — rental.inventory_id → inventory.inventory_id
-- fk_rental_customer — rental.customer_id → customer.customer_id
-- fk_rental_staff — rental.staff_id → staff.staff_id
-
-**Unique Keys:** rental_date (rental_date, inventory_id, customer_id)  
-**Indexes:** idx_fk_inventory_id (inventory_id), idx_fk_customer_id (customer_id), idx_fk_staff_id (staff_id)  
-**Referenced by:** payment.rental_id → rental.rental_id
-
----
-
-### 15. staff
-**Module:** Business  
-**Description:** The staff table lists all staff members, including information on email address and login credentials. The staff table refers to the store and address tables using foreign keys and is referred to by the rental, payment, and store tables.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | staff_id | TINYINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key that uniquely identifies the staff member. |
-| 2 | | first_name | VARCHAR(45) | NO | | — | The first name of the staff member. |
-| 3 | | last_name | VARCHAR(45) | NO | | — | The last name of the staff member. |
-| 4 | FK | address_id | SMALLINT UNSIGNED | NO | | address.address_id | A foreign key to the staff member's address in the address table. |
-| 5 | | picture | BLOB | YES | | — | A photograph of the employee. |
-| 6 | | email | VARCHAR(50) | YES | | — | The staff member's email address. |
-| 7 | FK | store_id | TINYINT UNSIGNED | NO | | store.store_id | The staff member's "home store." The employee can work at other stores but is generally assigned to the store listed. |
-| 8 | | active | TINYINT(1) | NO | Default: 1 | — | Whether this is an active employee (1 = active). |
-| 9 | | username | VARCHAR(16) | NO | | — | The username used by the staff member to access the rental system. |
-| 10 | | password | VARCHAR(40) | YES | | — | The password used by the staff member to access the rental system (SHA1 hash). |
-| 11 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** staff_id  
-**Foreign Keys:**
-- fk_staff_address — staff.address_id → address.address_id
-- fk_staff_store — staff.store_id → store.store_id
-
-**Indexes:** idx_fk_address_id (address_id), idx_fk_store_id (store_id)  
-**Referenced by:** payment.staff_id, rental.staff_id, store.manager_staff_id
-
----
-
-### 16. store
-**Module:** Business  
-**Description:** The store table lists all stores in the system. The store table refers to the staff and address tables using foreign keys and is referred to by the customer, inventory, and staff tables.
-
-| # | Key | Column | Data Type | Nullable | Attributes | References | Description |
-|---|-----|--------|-----------|----------|------------|------------|-------------|
-| 1 | PK | store_id | TINYINT UNSIGNED | NO | Auto Increment | — | A surrogate primary key that uniquely identifies the store. |
-| 2 | FK | manager_staff_id | TINYINT UNSIGNED | NO | | staff.staff_id | A foreign key identifying the manager of this store. |
-| 3 | FK | address_id | SMALLINT UNSIGNED | NO | | address.address_id | A foreign key identifying the address of this store. |
-| 4 | | last_update | TIMESTAMP | NO | Default: CURRENT_TIMESTAMP | — | The time that the row was created or most recently updated. |
-
-**Primary Key:** store_id  
-**Foreign Keys:**
-- fk_store_staff — store.manager_staff_id → staff.staff_id
-- fk_store_address — store.address_id → address.address_id
-
-**Unique Keys:** idx_unique_manager (manager_staff_id)  
-**Indexes:** idx_fk_address_id (address_id)  
-**Referenced by:** customer.store_id, inventory.store_id, staff.store_id
+Key structural patterns:
+- M:N relationship between playlists and tracks uses `PlaylistTrack` junction table with **composite PK**
+- `Employee.ReportsTo` is a **self-referencing FK** for the management hierarchy
+- Address fields are **denormalized** directly on `Customer`, `Employee`, and `Invoice` (no separate address table)
+- `InvoiceLine` connects sales to the music catalog — it's the bridge between the Sales and Music Catalog modules
