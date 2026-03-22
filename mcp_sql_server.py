@@ -682,6 +682,7 @@ def generate_chart(
     title: str = "",
     x_label: str = "",
     y_label: str = "",
+    hue_column: str = "",
     output_format: str = "png",
     style: str = "whitegrid",
     color_palette: str = "deep",
@@ -703,6 +704,7 @@ def generate_chart(
         title: Chart title (optional).
         x_label: Custom X-axis label (defaults to column name).
         y_label: Custom Y-axis label (defaults to column name).
+        hue_column: Column to group by for multi-series charts (e.g. separate lines/bars). Leave empty for single series.
         output_format: "png" (default) or "pdf".
         style: Seaborn style: whitegrid, darkgrid, white, dark, ticks.
         color_palette: Seaborn palette: deep, muted, pastel, bright, dark, colorblind.
@@ -750,6 +752,10 @@ def generate_chart(
         return json.dumps({
             "error": f"Column '{y_column}' not in query results. Available: {', '.join(df.columns)}"
         })
+    if hue_column and hue_column not in df.columns:
+        return json.dumps({
+            "error": f"Column '{hue_column}' not in query results. Available: {', '.join(df.columns)}"
+        })
 
     # --- Optional sort and limit ---
     if sort_by_value:
@@ -765,17 +771,19 @@ def generate_chart(
     sns.set_palette(color_palette)
     fig, ax = plt.subplots(figsize=(figsize_width, figsize_height))
 
+    hue_arg = hue_column if hue_column else None
+
     if chart_type == "bar":
-        sns.barplot(data=df, x=x_column, y=y_column, ax=ax)
+        sns.barplot(data=df, x=x_column, y=y_column, hue=hue_arg, ax=ax)
     elif chart_type == "barh":
-        sns.barplot(data=df, x=y_column, y=x_column, ax=ax, orient="h")
+        sns.barplot(data=df, x=y_column, y=x_column, hue=hue_arg, ax=ax, orient="h")
     elif chart_type == "line":
-        sns.lineplot(data=df, x=x_column, y=y_column, ax=ax, marker="o")
+        sns.lineplot(data=df, x=x_column, y=y_column, hue=hue_arg, ax=ax, marker="o")
     elif chart_type == "pie":
         ax.pie(df[y_column], labels=df[x_column], autopct="%1.1f%%", startangle=90)
         ax.set_aspect("equal")
     elif chart_type == "scatter":
-        sns.scatterplot(data=df, x=x_column, y=y_column, ax=ax)
+        sns.scatterplot(data=df, x=x_column, y=y_column, hue=hue_arg, ax=ax)
 
     # --- Labels and title ---
     if title:
