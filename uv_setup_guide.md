@@ -4,7 +4,7 @@
 
 - **uv** installed: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 - Default install location: `%USERPROFILE%\.local\bin\uv.exe`
-- If `uv` isn't on PATH in a new terminal: `$env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"`
+- If `uv` isn't on PATH in a new terminal: `$env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"` (`set PATH=%USERPROFILE%\.local\bin;%PATH%` for cmd terminal)
 
 ## Project Setup (from scratch)
 

@@ -1,7 +1,7 @@
 [project]
 name = "sqlgenerator"
 version = "0.1.0"
-description = "AI-powered SQL generator and data analyst for the Sakila database"
+description = "AI-powered SQL generator and data analyst (SQLite-based POC)"
 requires-python = ">=3.11"
 
 dependencies = [
@@ -9,7 +9,7 @@ dependencies = [
     "openpyxl",
     "tabulate",
     "numpy",
-    "mysql-connector-python",
     "python-dotenv",
     "mcp[cli]",
 ]
+# Note: sqlite3 is part of Python stdlib — no install needed

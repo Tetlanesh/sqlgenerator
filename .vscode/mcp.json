@@ -1,0 +1,17 @@
+{
+  // This file tells VS Code about MCP servers that Copilot can use.
+  // When VS Code starts, it launches each server listed here as a subprocess.
+
+  "servers": {
+    // "sql-server" is the name Copilot sees — must match the name in mcp_sql_server.py
+    "sql-server": {
+      // How to launch the server:
+      // "uv run" activates our .venv automatically and runs the script
+      "command": "uv",
+      "args": ["run", "python", "mcp_sql_server.py"],
+
+      // Working directory — ${workspaceFolder} = this project's root
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}
