@@ -11,5 +11,7 @@ dependencies = [
     "numpy",
     "python-dotenv",
     "mcp[cli]",
+    "sqlglot",
+    "openai",
 ]
 # Note: sqlite3 is part of Python stdlib — no install needed
