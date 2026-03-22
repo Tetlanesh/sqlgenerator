@@ -52,10 +52,44 @@ Key structural patterns:
 - Use `GROUP BY` with every non-aggregated `SELECT` column. Prefer `HAVING` for simple aggregate filters; use window functions for ranking/running totals.
 - Add `ORDER BY` / `LIMIT` when the prompt implies sorting or subsetting ("top 10", "most recent").
 
+## Ranking & Ties Clarification
+
+### ⛔ MANDATORY — DO NOT SKIP
+
+**This section is a hard gate.** You **MUST complete ALL applicable clarification questions below and receive the user's answers BEFORE writing, generating, or executing ANY SQL** that involves ranking, ordering, or picking "top N" / "bottom N" items. This applies to every ranking dimension in the query (e.g., if a query ranks both cities and customers, each dimension must be clarified separately).
+
+**Violation check:** If you find yourself writing a `ROW_NUMBER()`, `RANK()`, `DENSE_RANK()`, `ORDER BY … LIMIT`, or any ranking/filtering logic **before** the user has answered all required questions below — **STOP immediately**, discard the draft, and ask the missing questions first.
+
+Ask the user the following (skip only questions the user has **explicitly already answered** in the current conversation):
+
+1. **"If several items share the same value, should they all count as the same position (e.g., two items tied for 1st place are both #1), or should each item get its own unique position number?"**
+   - Same position → use `RANK()` (or `DENSE_RANK()` — see next question).
+   - Unique position → use `ROW_NUMBER()`, and warn the user that the pick among tied items is arbitrary / may change between runs.
+
+2. **(Only if the user chose "same position") "When there's a tie, should the next position skip ahead (e.g., two #1s → next is #3) or continue with the next number (e.g., two #1s → next is #2)?"**
+   - Skip ahead → `RANK()`
+   - Continue → `DENSE_RANK()`
+
+3. **"If there's a tie and you only want a fixed number of results, should I include all tied items (even if that gives more rows than the number you asked for) or cut off strictly at that number?"**
+   - Include all tied → filter on the rank value (e.g., `WHERE rnk <= 5`); row count may exceed 5.
+   - Strict cutoff → apply a secondary sort or `LIMIT` to cap the count.
+
+4. **(REQUIRED if the user chose strict cutoff OR unique position / `ROW_NUMBER()`) "When items are tied, is there a tiebreaker you'd like me to use to decide their order — for example alphabetical name, most recent date, etc.?"**
+   - If yes → add the tiebreaker to the `ORDER BY` inside the window function.
+   - If none → warn the user that the order among tied items will be arbitrary.
+   - **You MUST ask this question whenever Q1 = unique position or Q3 = strict cutoff. Do NOT proceed to SQL generation without the user's answer.**
+
+### Sequencing rule
+
+Ask **all** applicable questions in a **single prompt** (batch them). Wait for user answers. Only then proceed to SQL generation. Do **not** interleave question-asking with SQL writing — the full Q&A must complete first.
+
+**Default when the user wants a quick answer and doesn't want to decide:** use `RANK()` with all ties included (no cutoff), and note the choice in the explanation.
+
 ## Response Rules
 
 - **Answer exactly what was asked.** Do not run additional queries or add unsolicited analysis. If the user asks "which years", return the years — not a revenue breakdown. Let the user ask follow-up questions for more detail.
 - **One query per question.** Execute a single SQL query that answers the user's question. Only run a second query if the first result is insufficient to answer what was asked.
+- **Never run verification or follow-up queries.** After executing a query and receiving results, present them immediately. Do not run additional queries to "verify", "double-check", "sanity-check", or "explore" the data — even if the result set is small, empty, or unexpected. If the results seem surprising, state the observation and let the user decide whether to investigate further.
 - **Never guess or fabricate explanations for query results.** Only state what the returned data actually shows. Do not infer causes, assume data patterns, or use general knowledge about the database to explain why results look a certain way. If results are unexpected or sparse, note the observation and ask the user whether they'd like you to investigate further — do not run follow-up queries or speculate without explicit instructions.
 - **Avoid Markdown pitfalls.** Do not use `~` as an approximation symbol — write "approximately" or "approx." instead. The `~` character triggers strikethrough formatting in Markdown.
 - Present SQL in a ` ```sql ` fenced block. Add a brief explanation for complex queries.
