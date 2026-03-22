@@ -23,7 +23,7 @@ sqlgenerator/
 ├── pyproject.toml         # Python project config + dependencies
 ├── .env                   # API keys + config (gitignored)
 ├── data/
-│   └── chinook.db         # SQLite database
+│   └── chinook.db         # SQLite database (not tracked — see setup)
 ├── tests/
 │   ├── test_db.py         # Database connectivity tests
 │   ├── test_sentry.py     # Layer 1 + Layer 2 sentry tests
@@ -60,12 +60,19 @@ The **Chinook** database models a digital music store with 11 tables across 3 mo
    cd sqlgenerator
    ```
 
-2. **Install dependencies:**
+2. **Download the Chinook database:**
+   ```bash
+   mkdir data
+   curl -L -o data/chinook.db https://github.com/lerocha/chinook-database/releases/download/v1.4.5/Chinook_Sqlite.sqlite
+   ```
+   Or download manually from the [Chinook Database releases](https://github.com/lerocha/chinook-database/releases) and save the SQLite file as `data/chinook.db`.
+
+3. **Install dependencies:**
    ```bash
    uv sync
    ```
 
-3. **Configure environment:**
+4. **Configure environment:**
 
    Create a `.env` file in the project root:
    ```
@@ -75,7 +82,7 @@ The **Chinook** database models a digital music store with 11 tables across 3 mo
    SENTRY_ENABLED=true
    ```
 
-4. **Configure MCP server in VS Code:**
+5. **Configure MCP server in VS Code:**
 
    The `.vscode/mcp.json` file registers the MCP server. Update the `command` path to point to your `uv` executable:
    ```json
@@ -90,7 +97,7 @@ The **Chinook** database models a digital music store with 11 tables across 3 mo
    }
    ```
 
-5. **Open in VS Code** — Copilot will automatically start the MCP server and expose the SQL tools.
+6. **Open in VS Code** — Copilot will automatically start the MCP server and expose the SQL tools.
 
 ## Usage
 
