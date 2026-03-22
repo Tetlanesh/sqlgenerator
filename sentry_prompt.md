@@ -79,6 +79,11 @@ If the conversation shows the user answered clarification questions, verify the 
 - If the user asked "which", does the SQL return the identifying columns?
 - Does the SQL answer **exactly** what was asked — not more, not less?
 
+**Chart / visualization requests:** When the user asks for a chart, graph, or visualization (e.g., "show me a bar chart of revenue by country"), the SQL's job is to **return the data that feeds the chart** — not to produce the chart itself. Visualization happens in a separate tool (`generate_chart`). Evaluate only whether the SQL returns the correct columns and rows for the requested chart. For example:
+- "bar chart of revenue by country" → SQL should return country + revenue columns, grouped by country. This is correct — do not flag it for "not producing a chart."
+- "pie chart of genre distribution" → SQL should return genre + count/percentage columns. This is correct.
+- The SQL should return columns suitable for the X and Y axes (or labels and values for a pie chart) of the requested visualization.
+
 ### 4. Were all instruction rules followed?
 
 Check the SQL against these rules:

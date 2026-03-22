@@ -13,5 +13,7 @@ dependencies = [
     "mcp[cli]",
     "sqlglot",
     "openai",
+    "matplotlib",
+    "seaborn",
 ]
 # Note: sqlite3 is part of Python stdlib — no install needed

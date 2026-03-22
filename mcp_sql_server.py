@@ -26,11 +26,17 @@ import sqlite3
 import json
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 import sqlglot
 from openai import OpenAI
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")  # Non-interactive backend — no GUI needed
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -653,6 +659,153 @@ def review_sql(
         "issues": all_issues,
         "missing_questions": missing_questions,
         "explanation": " ".join(explanation_parts),
+    }
+    return json.dumps(result, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Tool 6: generate_chart — create a visualization from SQL query results
+# ---------------------------------------------------------------------------
+
+VALID_CHART_TYPES = {"bar", "barh", "line", "pie", "scatter"}
+VALID_STYLES = {"whitegrid", "darkgrid", "white", "dark", "ticks"}
+VALID_PALETTES = {"deep", "muted", "pastel", "bright", "dark", "colorblind"}
+CHARTS_DIR = PROJECT_ROOT / "output" / "charts"
+
+
+@mcp.tool()
+def generate_chart(
+    sql: str,
+    chart_type: str,
+    x_column: str,
+    y_column: str,
+    title: str = "",
+    x_label: str = "",
+    y_label: str = "",
+    output_format: str = "png",
+    style: str = "whitegrid",
+    color_palette: str = "deep",
+    figsize_width: float = 10.0,
+    figsize_height: float = 6.0,
+    limit: int = 0,
+    sort_by_value: bool = False,
+) -> str:
+    """
+    Generate a chart from SQL query results and save it as an image file.
+
+    Run review_sql() BEFORE calling this tool — the SQL runs internally.
+
+    Args:
+        sql: SELECT query whose results will be charted.
+        chart_type: One of: bar, barh, line, pie, scatter.
+        x_column: Column name for X axis (or pie labels).
+        y_column: Column name for Y axis (or pie values).
+        title: Chart title (optional).
+        x_label: Custom X-axis label (defaults to column name).
+        y_label: Custom Y-axis label (defaults to column name).
+        output_format: "png" (default) or "pdf".
+        style: Seaborn style: whitegrid, darkgrid, white, dark, ticks.
+        color_palette: Seaborn palette: deep, muted, pastel, bright, dark, colorblind.
+        figsize_width: Figure width in inches (default 10).
+        figsize_height: Figure height in inches (default 6).
+        limit: Max rows to plot (0 = no limit).
+        sort_by_value: Sort data by Y values descending before plotting.
+
+    Returns:
+        JSON with file_path, row_count, chart_type, and message.
+    """
+    # --- Validate inputs ---
+    chart_type = chart_type.lower().strip()
+    if chart_type not in VALID_CHART_TYPES:
+        return json.dumps({
+            "error": f"Invalid chart_type '{chart_type}'. Must be one of: {', '.join(sorted(VALID_CHART_TYPES))}"
+        })
+
+    output_format = output_format.lower().strip()
+    if output_format not in ("png", "pdf"):
+        return json.dumps({"error": "output_format must be 'png' or 'pdf'."})
+
+    if style not in VALID_STYLES:
+        style = "whitegrid"
+    if color_palette not in VALID_PALETTES:
+        color_palette = "deep"
+
+    # --- Run the SQL query ---
+    try:
+        conn = get_connection()
+        df = pd.read_sql_query(sql, conn)
+        conn.close()
+    except Exception as e:
+        return json.dumps({"error": f"SQL execution failed: {e}"})
+
+    if df.empty:
+        return json.dumps({"error": "Query returned no rows — nothing to chart."})
+
+    # --- Validate columns exist in results ---
+    if x_column not in df.columns:
+        return json.dumps({
+            "error": f"Column '{x_column}' not in query results. Available: {', '.join(df.columns)}"
+        })
+    if y_column not in df.columns:
+        return json.dumps({
+            "error": f"Column '{y_column}' not in query results. Available: {', '.join(df.columns)}"
+        })
+
+    # --- Optional sort and limit ---
+    if sort_by_value:
+        df = df.sort_values(by=y_column, ascending=False)
+
+    if limit > 0:
+        df = df.head(limit)
+
+    row_count = len(df)
+
+    # --- Create chart ---
+    sns.set_style(style)
+    sns.set_palette(color_palette)
+    fig, ax = plt.subplots(figsize=(figsize_width, figsize_height))
+
+    if chart_type == "bar":
+        sns.barplot(data=df, x=x_column, y=y_column, ax=ax)
+    elif chart_type == "barh":
+        sns.barplot(data=df, x=y_column, y=x_column, ax=ax, orient="h")
+    elif chart_type == "line":
+        sns.lineplot(data=df, x=x_column, y=y_column, ax=ax, marker="o")
+    elif chart_type == "pie":
+        ax.pie(df[y_column], labels=df[x_column], autopct="%1.1f%%", startangle=90)
+        ax.set_aspect("equal")
+    elif chart_type == "scatter":
+        sns.scatterplot(data=df, x=x_column, y=y_column, ax=ax)
+
+    # --- Labels and title ---
+    if title:
+        ax.set_title(title, fontsize=14, fontweight="bold")
+
+    if chart_type != "pie":
+        ax.set_xlabel(x_label or x_column)
+        ax.set_ylabel(y_label or y_column)
+
+        # Auto-rotate labels if there are many categories or long names
+        if chart_type in ("bar", "line", "scatter"):
+            max_label_len = df[x_column].astype(str).str.len().max()
+            if len(df) > 6 or max_label_len > 10:
+                plt.xticks(rotation=45, ha="right")
+
+    plt.tight_layout()
+
+    # --- Save to file ---
+    CHARTS_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"chart_{timestamp}.{output_format}"
+    file_path = CHARTS_DIR / filename
+    fig.savefig(file_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    result = {
+        "file_path": str(file_path),
+        "row_count": row_count,
+        "chart_type": chart_type,
+        "message": f"Chart saved to {file_path} ({row_count} data points).",
     }
     return json.dumps(result, indent=2)
 
