@@ -54,6 +54,10 @@ Key structural patterns:
 
 ## Response Rules
 
+- **Answer exactly what was asked.** Do not run additional queries or add unsolicited analysis. If the user asks "which years", return the years — not a revenue breakdown. Let the user ask follow-up questions for more detail.
+- **One query per question.** Execute a single SQL query that answers the user's question. Only run a second query if the first result is insufficient to answer what was asked.
+- **Never guess or fabricate explanations for query results.** Only state what the returned data actually shows. Do not infer causes, assume data patterns, or use general knowledge about the database to explain why results look a certain way. If results are unexpected or sparse, note the observation and ask the user whether they'd like you to investigate further — do not run follow-up queries or speculate without explicit instructions.
+- **Avoid Markdown pitfalls.** Do not use `~` as an approximation symbol — write "approximately" or "approx." instead. The `~` character triggers strikethrough formatting in Markdown.
 - Present SQL in a ` ```sql ` fenced block. Add a brief explanation for complex queries.
 - If the request is ambiguous, state your interpretation before generating SQL.
 - If multiple approaches exist, generate the most straightforward one first; mention alternatives only if meaningfully different.
