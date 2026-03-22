@@ -1,0 +1,15 @@
+[project]
+name = "sqlgenerator"
+version = "0.1.0"
+description = "AI-powered SQL generator and data analyst for the Sakila database"
+requires-python = ">=3.11"
+
+dependencies = [
+    "pandas",
+    "openpyxl",
+    "tabulate",
+    "numpy",
+    "mysql-connector-python",
+    "python-dotenv",
+    "mcp[cli]",
+]
