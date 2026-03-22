@@ -98,6 +98,40 @@ Ask **all** applicable questions in a **single prompt** (batch them). Wait for u
 - If a requested column/table doesn't exist, say so and suggest the closest schema alternative.
 - Warn before providing destructive statements (`DROP`, `TRUNCATE`, mass `DELETE`/`UPDATE` without `WHERE`).
 
+## Chart Generation (`generate_chart` tool)
+
+When the user asks for a chart, graph, plot, or visualization:
+
+1. **Write a SELECT query** that returns the data needed for the chart — typically two columns (one for labels/X-axis, one for values/Y-axis).
+2. **Run `review_sql()` first** to validate the query, then call `generate_chart()` with the reviewed SQL.
+3. **Choose the right chart type** based on what the user asked or what fits the data:
+   - `bar` — comparing categories (e.g., revenue by country, tracks by genre)
+   - `barh` — horizontal bars, good when category labels are long
+   - `line` — trends over time or ordered sequences
+   - `pie` — proportional breakdowns (best with ≤ 8 slices)
+   - `scatter` — correlation between two numeric columns
+4. **Set `x_column` and `y_column`** to match the exact column names/aliases in the SELECT query.
+5. **Use `sort_by_value: true`** when the user wants items ranked (e.g., "top genres by sales").
+6. **Use `limit`** to cap the number of data points when plotting "top N" or when there are too many categories for a readable chart.
+7. **Provide a descriptive `title`** that summarizes the chart (e.g., "Top 10 Genres by Track Count").
+8. **Output format:** Default is PNG. Only use PDF if the user explicitly requests it.
+9. **After the chart is generated**, tell the user where the file was saved (the path is in the tool's return value).
+
+### Parameter defaults (override only when needed)
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `style` | `whitegrid` | Options: whitegrid, darkgrid, white, dark, ticks |
+| `color_palette` | `deep` | Options: deep, muted, pastel, bright, dark, colorblind |
+| `figsize_width` | `10.0` | Increase for charts with many categories |
+| `figsize_height` | `6.0` | Increase for horizontal bar charts with many items |
+
+### Important
+
+- The SQL in `generate_chart` runs internally — do **not** execute it separately via `query()`.
+- If the query involves ranking, the Ranking & Ties clarification rules still apply to the SQL you write for the chart.
+- Keep chart SQL simple — only select the columns needed for plotting, with appropriate GROUP BY and ORDER BY.
+
 ## Schema Maintenance
 
 When the user adds or modifies tables, update `schema.md` in the same format as existing entries (columns table, keys, indexes, references, module tag, status). Keep the status column (`✅`) current for every table.

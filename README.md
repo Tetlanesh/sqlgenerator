@@ -5,7 +5,8 @@ AI-powered SQL query generator for the **Chinook** digital music store database 
 ## Features
 
 - **Natural language to SQL** — Ask questions in plain English, get correct SQLite queries
-- **MCP tools** — `query`, `execute`, `list_tables`, `describe_table`, `review_sql` exposed to Copilot
+- **MCP tools** — `query`, `execute`, `list_tables`, `describe_table`, `review_sql`, `generate_chart` exposed to Copilot
+- **Chart generation** — Create bar, horizontal bar, line, pie, and scatter charts from SQL query results, saved as PNG or PDF
 - **Two-layer sentry review** — Every SQL query is validated before execution:
   - **Layer 1 (Programmatic):** Syntax checking via `EXPLAIN`, schema validation via sqlglot AST parsing, write-safety guards (DROP/DELETE without WHERE), and ranking clarification enforcement
   - **Layer 2 (LLM Semantic):** OpenAI API call that reviews SQL against the full conversation context, checking whether clarification questions were asked, user answers were incorporated, and instruction rules were followed
@@ -29,6 +30,8 @@ sqlgenerator/
 │   ├── test_sentry.py     # Layer 1 + Layer 2 sentry tests
 │   ├── test_sentry_full.py# Combined review_sql() test
 │   └── test_cte.py        # CTE false-positive regression test
+├── output/
+│   └── charts/            # Generated chart images (gitignored)
 ├── .github/
 │   └── copilot-instructions.md  # Rules for Copilot agent behavior
 └── .vscode/
@@ -109,6 +112,16 @@ Open Copilot Chat in VS Code and ask questions about the Chinook database:
 
 Copilot will generate SQL, pass it through the sentry review, and execute it only after approval.
 
+### Chart Generation
+
+Ask Copilot for a visualization and it will generate a chart:
+
+- *"Show me a bar chart of tracks per genre"*
+- *"Plot monthly revenue as a line chart"*
+- *"Create a pie chart of sales by country"*
+
+Charts are saved to `output/charts/` as PNG (default) or PDF. The tool supports 5 chart types: `bar`, `barh`, `line`, `pie`, `scatter`.
+
 ## Running Tests
 
 ```bash
@@ -119,8 +132,8 @@ uv run python tests/test_sentry_full.py
 
 ## Branches
 
-- **master** — Base project (MCP server + schema + instructions)
-- **sentry** — Adds the two-layer sentry review system
+- **master** — Stable branch (MCP server + sentry review)
+- **analytics** — Adds chart generation via `generate_chart` tool
 
 ## Tech Stack
 
@@ -128,4 +141,7 @@ uv run python tests/test_sentry_full.py
 - **FastMCP** (`mcp[cli]`) — MCP server framework
 - **sqlglot** — SQL parser for AST-based schema validation
 - **OpenAI API** (`gpt-4o-mini`) — LLM semantic review
+- **matplotlib** — Chart rendering (Agg backend)
+- **seaborn** — Statistical visualization with better defaults
+- **pandas** — DataFrame handling for chart data
 - **python-dotenv** — Environment configuration

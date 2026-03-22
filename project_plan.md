@@ -8,7 +8,8 @@ Build a system where a user asks natural-language questions about data, and an A
 3. **Passes SQL through a sentry review gate** before execution
 4. Executes the SQL via an MCP tool (only after sentry approval)
 5. Optionally runs Python/pandas for deeper analysis
-6. Returns the answer + exports results to a file (CSV / Markdown / Excel)
+7. **Generates charts/visualizations** on request (bar, line, pie, scatter, etc.)
+8. Returns the answer + exports results to a file (CSV / Markdown / Excel / PNG / PDF)
 
 **Database:** SQLite (runs inside Python via built-in `sqlite3` — no external DB server needed).  
 **Sample data:** TBD — will choose a suitable example dataset when we get to that step.  
@@ -31,9 +32,18 @@ MCP query() / execute()    Copilot corrects SQL or asks user missing questions
     ↓                         ↓
 Result                     Loop back to review_sql()
     ↓
-Python / Pandas (optional deep analysis)
+┌─────────────────────────────────┐
+│ What does the user want?        │
+├──────────┬──────────┬───────────┤
+│ Answer   │ Analysis │ Chart     │
+│ (text)   │ (pandas) │ (visual)  │
+├──────────┼──────────┼───────────┤
+│ Format & │ Pivot /  │ MCP       │
+│ respond  │ stats    │ generate_ │
+│          │          │ chart()   │
+└──────────┴──────────┴───────────┘
     ↓
-Result → CSV / Markdown / Excel
+Result → CSV / Markdown / Excel / PNG / PDF
 ```
 
 ### Sentry Review — Two Layers
@@ -63,6 +73,8 @@ Result → CSV / Markdown / Excel
 | `python-dotenv` | Load `.env` for DB credentials |
 | `sqlglot` | SQL parser — extracts tables, columns, join paths from SQL for programmatic validation (Layer 1) |
 | `openai` | OpenAI API SDK — powers the LLM-based sentry reviewer (Layer 2) |
+| `matplotlib` | Chart rendering engine — bar, line, pie, scatter, horizontal bar |
+| `seaborn` | Statistical visualization — builds on matplotlib with better defaults and styles |
 
 **Setup:**
 ```bash
@@ -87,6 +99,7 @@ Uses built-in `sqlite3` — DB-agnostic design so swapping the `.db` file is tri
 | `list_tables` | — | JSON array of table names | Show all tables in DB |
 | `describe_table` | Table name | Column definitions | Quick schema lookup |
 | `review_sql` | SQL + full conversation context (see below) | Approval or rejection with issues | **Sentry gate** — must be called before `query()`/`execute()` |
+| `generate_chart` | SQL + chart type + labels + output format | File path to saved chart image | Generate a visualization from query results (see below) |
 
 **`review_sql` input parameters:**
 
@@ -96,6 +109,39 @@ Uses built-in `sqlite3` — DB-agnostic design so swapping the `.db` file is tri
 | `user_question` | string | yes | The **original** question the user asked |
 | `conversation_history` | string | yes | The relevant conversation leading up to the SQL — includes: the agent's clarifying questions, the user's answers, any follow-up questions the user added, and the agent's stated interpretation. This is what the sentry uses to verify the agent asked the right questions and incorporated the answers correctly. |
 | `clarifications_given` | string | no | Optional structured summary of key decisions made (e.g., "Ranking: RANK(), include ties, no cutoff"). Helps Layer 2 do a quick check without parsing the full conversation. |
+
+**`generate_chart` input parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `sql` | string | yes | The SQL query to run. Results become the chart's data source. |
+| `chart_type` | string | yes | One of: `bar`, `barh`, `line`, `pie`, `scatter`. |
+| `x_column` | string | yes | Column name from the SQL results to use as the X axis (or pie labels). |
+| `y_column` | string | yes | Column name from the SQL results to use as the Y axis (or pie values). |
+| `title` | string | no | Chart title. Defaults to empty. |
+| `x_label` | string | no | Custom X-axis label. Defaults to the column name. |
+| `y_label` | string | no | Custom Y-axis label. Defaults to the column name. |
+| `output_format` | string | no | `png` (default) or `pdf`. |
+| `style` | string | no | Seaborn style theme: `whitegrid` (default), `darkgrid`, `white`, `dark`, `ticks`. |
+| `color_palette` | string | no | Seaborn palette name: `deep` (default), `muted`, `pastel`, `bright`, `dark`, `colorblind`. |
+| `figsize_width` | number | no | Figure width in inches. Default: 10. |
+| `figsize_height` | number | no | Figure height in inches. Default: 6. |
+| `limit` | number | no | Max rows to plot (to keep charts readable). Default: no limit. |
+| `sort_by_value` | boolean | no | Sort data by Y values before plotting. Default: false. |
+
+**`generate_chart` return value:** JSON string with:
+- `file_path` — absolute path to the saved chart image
+- `row_count` — number of data points plotted
+- `chart_type` — the chart type used
+- `message` — human-readable summary
+
+**Chart generation workflow:**
+1. Runs the SQL via the existing `query()` pipeline (sentry review should happen before calling `generate_chart`)
+2. Loads results into a pandas DataFrame
+3. Applies optional sorting/limiting
+4. Renders chart with matplotlib + seaborn styling
+5. Saves to `output/charts/` with a timestamped filename
+6. Returns the file path for the agent to display or reference
 
 ### 3. VS Code MCP Registration
 
@@ -197,6 +243,40 @@ Add sections for:
 - **Clarification workflow** — agent must ask 1–2 follow-up questions before generating SQL (time range, filters, grouping preferences)
 - **Tool usage** — when to use the MCP `query` tool vs. Python analysis
 - **Export rules** — always save results to `output/` and tell the user the file path
+- **Chart generation** — when the user asks for a visualization, chart, or graph, the agent should use `generate_chart()` with appropriate parameters
+
+### 8. Analytics — Chart Generation
+
+**File:** `mcp_sql_server.py` (new tool: `generate_chart`)
+
+Generate visual charts from SQL query results using matplotlib + seaborn.
+
+#### Supported Chart Types
+
+| Type | Best For | Example Use Case |
+|------|----------|-----------------|
+| `bar` | Comparing categories | Revenue by country, tracks per genre |
+| `barh` | Categories with long labels | Top artists by track count |
+| `line` | Trends over time | Monthly invoice totals |
+| `pie` | Part-of-whole composition | Genre distribution, market share |
+| `scatter` | Correlation between two numeric values | Track duration vs. price |
+
+#### Design Decisions
+
+- **SQL runs inside the tool** — `generate_chart()` executes the SQL itself (via the existing `query()` path) and builds the chart from the results. The agent doesn't need to run the query separately and pass raw data.
+- **Sentry review first** — the agent should call `review_sql()` before `generate_chart()`, since the chart tool runs the SQL internally.
+- **Output directory** — charts save to `output/charts/` with timestamped filenames (e.g., `chart_20260322_153045.png`).
+- **Sensible defaults** — seaborn `whitegrid` style, `deep` palette, 10x6 figure size. All overridable.
+- **Readability guardrails** — if the query returns many rows, the agent can use `limit` and `sort_by_value` to keep charts clean. Label rotation is applied automatically for long category names.
+- **Two output formats** — PNG (default, for quick viewing) and PDF (for print/export).
+
+#### Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `matplotlib` | Core chart rendering engine |
+| `seaborn` | Statistical visualization layer — cleaner defaults, richer color palettes |
+| `pandas` | Already in project — loads SQL results into DataFrame for chart data |
 
 ---
 
@@ -205,22 +285,29 @@ Add sections for:
 ```
 sqlgenerator/
 ├── .env                          # DB path + API keys (gitignored)
-├── .gitignore                    # .env, output/, __pycache__, .venv/
+├── .gitignore                    # .env, output/, data/, __pycache__, .venv/
 ├── pyproject.toml                # Project metadata + dependencies (uv)
 ├── uv.lock                       # Lockfile (auto-generated by uv sync)
 ├── schema.md                     # DB schema reference (existing)
-├── mcp_sql_server.py             # MCP server: query/execute/describe/review_sql
+├── mcp_sql_server.py             # MCP server: query/execute/describe/review_sql/generate_chart
 ├── sentry_prompt.md              # System prompt for the LLM sentry reviewer
+├── README.md                     # Project documentation
 ├── data/
-│   └── chinook.db                # SQLite database file (Chinook)
+│   └── chinook.db                # SQLite database file (gitignored — see README for download)
 ├── .vscode/
 │   └── mcp.json                  # MCP server registration for Copilot
 ├── .github/
 │   └── copilot-instructions.md   # Agent behavior rules (existing, to extend)
+├── tests/
+│   ├── test_db.py                # Database connectivity tests
+│   ├── test_sentry.py            # Layer 1 + Layer 2 sentry tests
+│   ├── test_sentry_full.py       # Combined review_sql() test
+│   └── test_cte.py               # CTE false-positive regression test
 ├── scripts/
 │   ├── export_results.py         # Result → CSV / Markdown / Excel
 │   └── analyze.py                # Pandas analysis helpers
 └── output/                       # Generated files (gitignored)
+    └── charts/                   # Chart images (PNG/PDF)
 ```
 
 ---
@@ -241,8 +328,9 @@ sqlgenerator/
      - c. Loops back to step 4 after fixing/clarifying
 8. **Agent calls MCP `query` / `execute` tool** to run the approved SQL
 9. **Simple answer?** → Format directly, export to CSV/Markdown/Excel in `output/`
-10. **Complex analysis needed?** → Run Python/pandas on the result set (pivots, statistics, trends)
-11. **Agent responds** with the answer + path to the exported file
+10. **Chart requested?** → Agent calls MCP `generate_chart()` with SQL + chart config → returns file path
+11. **Complex analysis needed?** → Run Python/pandas on the result set (pivots, statistics, trends)
+12. **Agent responds** with the answer + chart image + path to exported files
 
 ### Sentry Loop — Retry Limits
 
@@ -272,11 +360,16 @@ sqlgenerator/
 | 5 | Create `schema.md` | 4 | ✅ |
 | 6 | Create `.github/copilot-instructions.md` | 5 | ✅ |
 | 7 | Create `.env` + `.gitignore` | — | ✅ |
-| 8 | **Add `sqlglot` + `openai` to `pyproject.toml`** + `uv sync` | 1 | ⬜ |
-| 9 | **Create `sentry_prompt.md`** — LLM reviewer system prompt | 6 | ⬜ |
-| 10 | **Build `review_sql()` tool** — Layer 1 programmatic checks + Layer 2 LLM review | 2, 8, 9 | ⬜ |
-| 11 | **Update `.github/copilot-instructions.md`** — add mandatory sentry review section | 6, 10 | ⬜ |
-| 12 | **Update `.env`** — add `OPENAI_API_KEY`, `SENTRY_MODEL`, `SENTRY_ENABLED` | 7 | ⬜ |
-| 13 | **Test `review_sql()` tool** — end-to-end sentry validation | 8–12 | ⬜ |
-| 14 | Create `scripts/export_results.py` | 1 | ⬜ (deferred) |
-| 15 | Create `scripts/analyze.py` | 1 | ⬜ (deferred) |
+| 8 | **Add `sqlglot` + `openai` to `pyproject.toml`** + `uv sync` | 1 | ✅ |
+| 9 | **Create `sentry_prompt.md`** — LLM reviewer system prompt | 6 | ✅ |
+| 10 | **Build `review_sql()` tool** — Layer 1 programmatic checks + Layer 2 LLM review | 2, 8, 9 | ✅ |
+| 11 | **Update `.github/copilot-instructions.md`** — add mandatory sentry review section | 6, 10 | ✅ |
+| 12 | **Update `.env`** — add `OPENAI_API_KEY`, `SENTRY_MODEL`, `SENTRY_ENABLED` | 7 | ✅ |
+| 13 | **Test `review_sql()` tool** — end-to-end sentry validation | 8–12 | ✅ |
+| 14 | **Add `matplotlib` + `seaborn` to `pyproject.toml`** + `uv sync` | 1 | ⬜ |
+| 15 | **Build `generate_chart()` tool** in `mcp_sql_server.py` | 2, 14 | ⬜ |
+| 16 | **Update `.github/copilot-instructions.md`** — add chart generation section | 11, 15 | ⬜ |
+| 17 | **Update `README.md`** — document chart feature | 15 | ⬜ |
+| 18 | **Test `generate_chart()` tool** — end-to-end chart generation | 14–16 | ⬜ |
+| 19 | Create `scripts/export_results.py` | 1 | ⬜ (deferred) |
+| 20 | Create `scripts/analyze.py` | 1 | ⬜ (deferred) |
